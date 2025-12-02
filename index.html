@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TherapyLog Pro</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Extend Tailwind with a custom color palette inspired by the screenshot
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              beige: {
+                DEFAULT: '#FBF9F6',
+                soft: '#F5F1ED',
+              },
+              brand: {
+                orange: '#D95D39', // Terracotta/Burnt Orange
+                text: {
+                  DEFAULT: '#4A4A4A',
+                  light: '#6B6B6B'
+                },
+                border: '#EAE5E1',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #FBF9F6; /* beige */
+        color: #4A4A4A; /* brand-text */
+      }
+      /* Custom scrollbar for a more refined look */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #D1C9C3;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: #BFB5AF;
+      }
+      /* Tiptap Editor placeholder styles */
+      .ProseMirror p.is-editor-empty:first-child::before {
+        content: attr(data-placeholder);
+        float: left;
+        color: #adb5bd;
+        pointer-events: none;
+        height: 0;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "recharts": "https://aistudiocdn.com/recharts@^3.5.1",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "@tiptap/core": "https://aistudiocdn.com/@tiptap/core@^2.8.2",
+    "@tiptap/pm/state": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/state",
+    "@tiptap/pm/view": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/view",
+    "@tiptap/pm/model": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/model",
+    "@tiptap/pm/transform": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/transform",
+    "@tiptap/pm/commands": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/commands",
+    "@tiptap/pm/schema-list": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/schema-list",
+    "@tiptap/pm/keymap": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/keymap",
+    "@tiptap/pm/inputrules": "https://aistudiocdn.com/@tiptap/pm@^2.8.2/inputrules",
+    "@tiptap/react": "https://aistudiocdn.com/@tiptap/react@^2.8.2",
+    "@tiptap/starter-kit": "https://aistudiocdn.com/@tiptap/starter-kit@^2.8.2",
+    "@tiptap/extension-placeholder": "https://aistudiocdn.com/@tiptap/extension-placeholder@^2.8.2",
+    "tiptap-markdown": "https://aistudiocdn.com/tiptap-markdown@^0.8.9"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>
