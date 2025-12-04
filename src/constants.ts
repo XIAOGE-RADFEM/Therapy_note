@@ -78,7 +78,8 @@ export const TRANSLATIONS = {
     importDesc: 'Restore from an encrypted backup. This will completely replace all current data.',
     confirmImportTitle: 'Confirm Import',
     confirmImport: 'Are you sure you want to import this backup? This will overwrite all existing data and cannot be undone.',
-    importError: 'Import failed. The backup password does not match your current password, or the file is corrupt.',
+    importError: 'Import failed. The password provided is incorrect for this backup, or the file is corrupt.',
+    confirmImportButton: 'Confirm & Import',
     clearDesc: 'Permanently remove all data from the browser storage.',
     dataStats: 'Storage Statistics',
     confirmClear: 'Are you sure you want to wipe all data? This cannot be undone.',
@@ -124,6 +125,29 @@ export const TRANSLATIONS = {
     createAndEncrypt: 'Create & Encrypt',
     unlock: 'Unlock',
     logOut: 'Log Out',
+    // Repeated Sessions
+    repeatSession: 'Repeat Session',
+    repeatWeekly: 'Repeat Weekly on',
+    endDate: 'End Date',
+    days: {
+      0: 'Sun',
+      1: 'Mon',
+      2: 'Tue',
+      3: 'Wed',
+      4: 'Thu',
+      5: 'Fri',
+      6: 'Sat'
+    },
+    // Change Password
+    security: 'Security',
+    changePassword: 'Change Password',
+    changePasswordDesc: 'Update your master password. This will safely re-encrypt all your existing data with the new password.',
+    changePasswordTitle: 'Change Master Password',
+    currentPassword: 'Current Password',
+    newPassword: 'New Password',
+    confirmNewPassword: 'Confirm New Password',
+    passwordChanged: 'Password changed successfully.',
+    verifyError: 'Current password incorrect.'
   },
   zh: {
     dashboard: '主页',
@@ -200,7 +224,8 @@ export const TRANSLATIONS = {
     importDesc: '从加密备份文件恢复。这将完全替换当前所有数据。',
     confirmImportTitle: '确认导入',
     confirmImport: '您确定要导入此备份吗？这将覆盖所有现有数据，此操作无法撤销。',
-    importError: '导入失败。备份文件的密码与您当前的密码不匹配，或者文件已损坏。',
+    importError: '导入失败。此备份文件所提供的密码不正确，或文件已损坏。',
+    confirmImportButton: '确认并导入',
     clearDesc: '永久删除浏览器中的所有存储数据。',
     dataStats: '存储统计',
     confirmClear: '确定要清空所有数据吗？此操作无法撤销。',
@@ -246,6 +271,29 @@ export const TRANSLATIONS = {
     createAndEncrypt: '创建并加密',
     unlock: '解锁',
     logOut: '登出',
+    // Repeated Sessions
+    repeatSession: '重复会谈',
+    repeatWeekly: '每周重复于',
+    endDate: '结束日期',
+    days: {
+      0: '周日',
+      1: '周一',
+      2: '周二',
+      3: '周三',
+      4: '周四',
+      5: '周五',
+      6: '周六'
+    },
+    // Change Password
+    security: '安全',
+    changePassword: '修改密码',
+    changePasswordDesc: '更新您的主密码。这将使用新密码安全地重新加密所有现有数据。',
+    changePasswordTitle: '修改主密码',
+    currentPassword: '当前密码',
+    newPassword: '新密码',
+    confirmNewPassword: '确认新密码',
+    passwordChanged: '密码修改成功。',
+    verifyError: '当前密码不正确。'
   },
 };
 

@@ -14,9 +14,12 @@ import { TRANSLATIONS } from './constants';
 import { SessionEditor } from './components/SessionEditor';
 import { TemplateSelectionModal } from './components/TemplateSelectionModal';
 import { Auth } from './components/Auth';
-import { CryptoService } from './services/crypto';
+import { CryptoService, base64ToUint8Array, uint8ArrayToBase64 } from './services/crypto';
 import { ScheduleSessionModal } from './components/ScheduleSessionModal';
 import { CalendarView } from './components/CalendarView';
+import { ImportPasswordModal } from './components/ImportPasswordModal';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
+import { Toast } from './components/Toast';
 
 
 const App = () => {
@@ -48,11 +51,17 @@ const App = () => {
   const [isSchedulingModalOpen, setIsSchedulingModalOpen] = useState(false);
   const [schedulingModalConfig, setSchedulingModalConfig] = useState<{client?: Client, date?: string}>({});
   
-  const [isImportConfirmOpen, setIsImportConfirmOpen] = useState(false);
-  const [importData, setImportData] = useState<any>(null);
+  const [isImportPasswordModalOpen, setIsImportPasswordModalOpen] = useState(false);
+  const [dataToImport, setDataToImport] = useState<any>(null);
 
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const inactivityTimer = useRef<number | null>(null);
 
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+  };
 
   useEffect(() => {
     const salt = localStorage.getItem('therapylog.salt');
@@ -170,28 +179,43 @@ const App = () => {
   };
   
   const handleSaveScheduledSession = async (data: any) => {
-    const clientId = data.client_id || schedulingModalConfig.client?.client_id;
-    if (!clientId) return;
+    // Handle both single session object and array of sessions (for recurring)
+    const sessionDataList = Array.isArray(data) ? data : [data];
+    const newSessions: Session[] = [];
 
-    const newSession: Session = {
-      client_id: clientId,
-      session_id: generateSessionId(clientId, sessions),
-      date: data.date,
-      time: data.time,
-      duration_min: data.duration_min,
-      format: data.format,
-      setting: data.setting,
-      location: data.location,
-      status: 'scheduled',
-      // Default empty values for a scheduled session
-      diagnoses: [],
-      tags: [],
-      risk: 'low',
-    };
+    // Use a temporary list to calculate IDs correctly if we are adding multiple
+    const currentSessionsList = [...sessions];
+
+    for (const sessionData of sessionDataList) {
+        const clientId = sessionData.client_id || schedulingModalConfig.client?.client_id;
+        if (!clientId) continue;
+
+        const newSession: Session = {
+          client_id: clientId,
+          session_id: generateSessionId(clientId, currentSessionsList),
+          date: sessionData.date,
+          time: sessionData.time,
+          duration_min: sessionData.duration_min,
+          format: sessionData.format,
+          setting: sessionData.setting,
+          location: sessionData.location,
+          status: 'scheduled',
+          // Default empty values for a scheduled session
+          diagnoses: [],
+          tags: [],
+          risk: 'low',
+        };
+        
+        const newId = await db.saveSession(newSession);
+        const sessionWithId = { ...newSession, id: newId };
+        
+        newSessions.push(sessionWithId);
+        currentSessionsList.push(sessionWithId);
+    }
     
-    const newId = await db.saveSession(newSession);
-    setSessions([...sessions, { ...newSession, id: newId }]);
+    setSessions(currentSessionsList);
     setIsSchedulingModalOpen(false);
+    showToast(newSessions.length > 1 ? `${newSessions.length} sessions scheduled` : 'Session scheduled', 'success');
   };
   
   const handleSessionClick = (session: Session) => {
@@ -226,10 +250,10 @@ word_count: 0
 ${templateContent}`
     };
     
-    await handleSaveSession(sessionToUpdate); // This will save and update state
+    const savedSession = await handleSaveSession(sessionToUpdate);
     
     // Open editor with the newly updated session
-    setCurrentSession(sessionToUpdate);
+    setCurrentSession(savedSession);
     setIsEditingSession(true);
     
     // Close modal
@@ -262,34 +286,62 @@ ${templateContent}`
   const handleInitiateImport = async (data: any) => {
     const isValid = await db.verifyImportData(data);
     if (!isValid) {
-      alert(TRANSLATIONS[lang].importError);
+      showToast(TRANSLATIONS[lang].importError, 'error');
       return;
     }
-    
-    const currentKeyCheck = localStorage.getItem('therapylog.keyCheck');
-    if(data.meta.keyCheck !== currentKeyCheck) {
-      alert(TRANSLATIONS[lang].importError);
-      return;
-    }
-
-    setImportData(data);
-    setIsImportConfirmOpen(true);
+    setDataToImport(data);
+    setIsImportPasswordModalOpen(true);
   };
 
-  const handleConfirmImport = async () => {
-    if (!importData) return;
+  const handleConfirmImport = async (data: any, password: string) => {
+    if (!data || !password) return;
     try {
-      await db.importData(importData);
-      alert('Import successful! The application will now reload.');
-      window.location.reload();
-    } catch (e) {
+      await db.importData(data);
+      
+      const saltB64 = data.meta.salt;
+      const salt = base64ToUint8Array(saltB64);
+      const newCryptoService = await CryptoService.create(password, salt);
+      db.setCrypto(newCryptoService);
+
+      await loadData();
+
+      setDataToImport(null);
+      setIsImportPasswordModalOpen(false);
+      showToast('Import successful!', 'success');
+      setActiveTab('clients');
+      setSelectedClientId(null);
+    } catch (e: any) {
       console.error(e);
-      alert('An error occurred during import.');
+      const reason = e instanceof Error ? e.message : 'Unknown error';
+      showToast(`Import failed: ${reason}`, 'error');
+      setDataToImport(null);
+      setIsImportPasswordModalOpen(false);
     }
-    setImportData(null);
-    setIsImportConfirmOpen(false);
   };
   
+  const handleChangePassword = async (currentPass: string, newPass: string) => {
+    const saltB64 = localStorage.getItem('therapylog.salt');
+    const keyCheck = localStorage.getItem('therapylog.keyCheck');
+    if (!saltB64 || !keyCheck) throw new Error("Security data missing");
+
+    const salt = base64ToUint8Array(saltB64);
+    const isCorrect = await CryptoService.verifyPassword(currentPass, salt, keyCheck);
+    if (!isCorrect) throw new Error(TRANSLATIONS[lang].verifyError);
+
+    const newSalt = window.crypto.getRandomValues(new Uint8Array(16));
+    const newCrypto = await CryptoService.create(newPass, newSalt);
+    const newKeyCheck = await newCrypto.getKeyCheck();
+
+    // Re-encrypt database in a single transaction
+    await db.reEncryptAll(clients, sessions, newCrypto);
+
+    // Update LocalStorage
+    localStorage.setItem('therapylog.salt', uint8ArrayToBase64(newSalt));
+    localStorage.setItem('therapylog.keyCheck', newKeyCheck);
+
+    showToast(TRANSLATIONS[lang].passwordChanged, 'success');
+  };
+
   const handleClearData = () => {
      if (window.confirm(TRANSLATIONS[lang].confirmClear)) {
         db.clearAllData().then(() => {
@@ -310,6 +362,7 @@ ${templateContent}`
 
   return (
     <>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       <Layout 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
@@ -337,7 +390,16 @@ ${templateContent}`
           />
         )}
         {activeTab === 'calendar' && <CalendarView clients={clients} sessions={sessions} lang={lang} onSchedule={handleOpenSchedulingModal} />}
-        {activeTab === 'settings' && <Settings lang={lang} clientsCount={clients.length} sessionsCount={sessions.length} onInitiateImport={handleInitiateImport} onClear={handleClearData} />}
+        {activeTab === 'settings' && (
+          <Settings 
+            lang={lang} 
+            clients={clients} 
+            sessions={sessions} 
+            onInitiateImport={handleInitiateImport} 
+            onClear={handleClearData} 
+            onChangePassword={() => setIsChangePasswordModalOpen(true)}
+          />
+        )}
       </Layout>
 
       {isClientModalOpen && (
@@ -401,14 +463,21 @@ ${templateContent}`
           lang={lang}
         />
       )}
-      {isImportConfirmOpen && (
-        <ConfirmModal
-            isOpen={isImportConfirmOpen}
-            onClose={() => setIsImportConfirmOpen(false)}
+      {isImportPasswordModalOpen && (
+        <ImportPasswordModal
+            isOpen={isImportPasswordModalOpen}
+            onClose={() => setIsImportPasswordModalOpen(false)}
             onConfirm={handleConfirmImport}
-            title={TRANSLATIONS[lang].confirmImportTitle}
-            message={TRANSLATIONS[lang].confirmImport}
             lang={lang}
+            importData={dataToImport}
+        />
+      )}
+      {isChangePasswordModalOpen && (
+        <ChangePasswordModal
+           isOpen={isChangePasswordModalOpen}
+           onClose={() => setIsChangePasswordModalOpen(false)}
+           onConfirm={handleChangePassword}
+           lang={lang}
         />
       )}
     </>

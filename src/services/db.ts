@@ -1,3 +1,5 @@
+
+
 import { Client, Session } from '../types';
 import { CryptoService } from './crypto';
 
@@ -50,11 +52,15 @@ export class DBService {
   async saveSession(session: Session): Promise<number> {
     if (!this.crypto) throw new Error('Crypto service not set');
     const encryptedPayload = await this.crypto.encrypt(session);
-    // Remove id from object if it exists so auto-increment works for new sessions
-    const sessionData = { ...session };
-    delete sessionData.id;
-    const dataToStore = { ...sessionData, id: session.id, payload: encryptedPayload };
-    return this.put(SESSION_STORE, dataToStore);
+    
+    // For updates, the object needs the key. For inserts, it doesn't, so auto-increment works.
+    const dataToStore: { id?: number; payload: string } = { payload: encryptedPayload };
+    if (session.id) {
+      dataToStore.id = session.id;
+    }
+    
+    const savedId = await this.put(SESSION_STORE, dataToStore);
+    return savedId; // `put` returns the key of the stored item.
   }
   
   async deleteClient(clientId: string): Promise<void> {
@@ -75,21 +81,45 @@ export class DBService {
         encryptedClients.map(c => this.crypto!.decrypt<Client>(c.payload))
     );
     const sessions = await Promise.all(
-        encryptedSessions.map(s => this.crypto!.decrypt<Session>(s.payload))
+        encryptedSessions.map(async s => {
+            const decrypted = await this.crypto!.decrypt<Session>(s.payload);
+            // CRITICAL FIX: Merge the ID from the database record into the decrypted session object.
+            // This ensures sessions that were scheduled but not yet edited (so ID was missing from payload)
+            // are correctly associated with their DB ID.
+            return { ...decrypted, id: s.id };
+        })
     );
 
     return { clients, sessions };
   }
 
-  async exportData(): Promise<any> {
-    if (!this.db) throw new Error('DB not initialized');
-    const clients = await this.getAll(CLIENT_STORE);
-    const sessions = await this.getAll(SESSION_STORE);
+  async exportData(clientsToExport: Client[], sessionsToExport: Session[]): Promise<any> {
+    if (!this.crypto) throw new Error('Crypto service not set');
+
+    // Re-encrypt the current in-memory state to ensure a clean export
+    const encryptedClients = await Promise.all(
+      clientsToExport.map(async (c) => {
+        const payload = await this.crypto!.encrypt(c);
+        return { client_id: c.client_id, payload };
+      })
+    );
+
+    const encryptedSessions = await Promise.all(
+      sessionsToExport.map(async (s) => {
+        if (!s.id) {
+          console.warn("Attempting to export a session without an ID", s);
+          return null;
+        }
+        const payload = await this.crypto!.encrypt(s);
+        return { id: s.id, payload };
+      })
+    ).then(results => results.filter(Boolean)); // Filter out any nulls from sessions without IDs
+
     const salt = localStorage.getItem('therapylog.salt');
     const keyCheck = localStorage.getItem('therapylog.keyCheck');
     return {
-      clients,
-      sessions,
+      clients: encryptedClients,
+      sessions: encryptedSessions,
       meta: {
         salt,
         keyCheck,
@@ -132,6 +162,45 @@ export class DBService {
 
         data.clients.forEach((c: any) => clientStore.put(c));
         data.sessions.forEach((s: any) => sessionStore.put(s));
+    });
+  }
+  
+  /**
+   * Re-encrypts all data with a new crypto service in a single transaction.
+   * This ensures data consistency during a password change.
+   */
+  async reEncryptAll(clients: Client[], sessions: Session[], newCrypto: CryptoService): Promise<void> {
+    // Encrypt everything in memory first using the NEW crypto service
+    const encryptedClients = await Promise.all(clients.map(async c => {
+        const payload = await newCrypto.encrypt(c);
+        return { client_id: c.client_id, payload };
+    }));
+    
+    const encryptedSessions = await Promise.all(sessions.map(async s => {
+        const payload = await newCrypto.encrypt(s);
+        return { id: s.id, payload };
+    }));
+
+    return new Promise((resolve, reject) => {
+        if (!this.db) return reject('DB not initialized');
+        const transaction = this.db.transaction([CLIENT_STORE, SESSION_STORE], 'readwrite');
+        
+        transaction.onerror = () => reject(transaction.error);
+        transaction.oncomplete = () => {
+             // Update the internal crypto service to the new one only after successful commit
+             this.crypto = newCrypto;
+             resolve();
+        };
+
+        const clientStore = transaction.objectStore(CLIENT_STORE);
+        const sessionStore = transaction.objectStore(SESSION_STORE);
+        
+        // CRITICAL FIX: Clear the stores before writing new data to prevent mixed encryption state
+        clientStore.clear();
+        sessionStore.clear();
+
+        encryptedClients.forEach(c => clientStore.put(c));
+        encryptedSessions.forEach(s => sessionStore.put(s));
     });
   }
 

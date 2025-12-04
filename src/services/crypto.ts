@@ -13,7 +13,7 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
   return window.btoa(binary);
 };
 
-const base64ToArrayBuffer = (base64: string): Uint8Array => {
+export const base64ToUint8Array = (base64: string): Uint8Array => {
   const binary_string = window.atob(base64);
   const len = binary_string.length;
   const bytes = new Uint8Array(len);
@@ -22,6 +22,15 @@ const base64ToArrayBuffer = (base64: string): Uint8Array => {
   }
   return bytes;
 };
+
+export const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
 
 export class CryptoService {
   private key: CryptoKey;
@@ -86,8 +95,8 @@ export class CryptoService {
 
   async decrypt<T>(encryptedPayload: string): Promise<T> {
     const payload = JSON.parse(encryptedPayload);
-    const iv = base64ToArrayBuffer(payload.iv);
-    const encryptedContent = base64ToArrayBuffer(payload.data);
+    const iv = base64ToUint8Array(payload.iv);
+    const encryptedContent = base64ToUint8Array(payload.data);
 
     const decryptedContent = await window.crypto.subtle.decrypt(
       { name: 'AES-GCM', iv },

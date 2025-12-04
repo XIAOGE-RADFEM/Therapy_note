@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -8,7 +6,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { Session, Language, SessionFormat, SessionSetting, Attachment } from '../types';
 import { calculateWordCount } from '../utils';
 import { TRANSLATIONS } from '../constants';
-import { Save, Calendar, Clock, AlertTriangle, Users, Monitor, MapPin, Tag, Paperclip, X, Download, ChevronLeft, Undo2, Redo2, CheckCircle } from 'lucide-react';
+import { Save, Calendar, Clock, AlertTriangle, Users, Monitor, MapPin, Tag, Paperclip, X, Download, ChevronLeft, Undo2, Redo2, CheckCircle, PanelLeft, PanelLeftClose } from 'lucide-react';
 
 interface SessionEditorProps {
   initialSession: Session;
@@ -31,6 +29,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({ initialSession, on
 
   const [wordCount, setWordCount] = useState(0);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // Metadata State
   const [date, setDate] = useState(initialSession.date);
@@ -66,7 +65,8 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({ initialSession, on
       },
     },
     onUpdate: ({ editor }) => {
-      const markdownContent = editor.storage.markdown.getMarkdown();
+      // Fix: Cast storage to any to access markdown extension property
+      const markdownContent = (editor.storage as any).markdown.getMarkdown();
       setWordCount(calculateWordCount(markdownContent));
       
       // Debounced autosave only on text change
@@ -85,17 +85,22 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({ initialSession, on
   
   // Handle external changes to the session
   useEffect(() => {
-    if (editor && initialSession.session_id !== editor.getHTML()) {
+    // Note: This check uses getHTML() just to verify editor existence effectively, but compares content body
+    if (editor) {
         const newBody = getBodyFromContent(initialSession.content);
-        const currentEditorBody = editor.storage.markdown.getMarkdown();
+        // Fix: Cast storage to any to access markdown extension property
+        const currentEditorBody = (editor.storage as any).markdown.getMarkdown();
         if (newBody !== currentEditorBody) {
-             editor.commands.setContent(newBody, false);
+             // Fix: setContent command does not accept boolean for emitUpdate. 
+             // Removed 'false' argument. 
+             editor.commands.setContent(newBody);
         }
     }
   }, [initialSession, editor]);
 
   const buildSessionObject = useCallback(() => {
-    const noteBody = editor?.storage.markdown.getMarkdown() || '';
+    // Fix: Cast storage to any to access markdown extension property
+    const noteBody = (editor?.storage as any)?.markdown?.getMarkdown() || '';
     const currentWordCount = calculateWordCount(noteBody);
     const finalFrontmatter = `---
 client_id: ${initialSession.client_id}
@@ -195,12 +200,22 @@ word_count: ${currentWordCount}
              <button onClick={handleBackClick} className="p-2 text-brand-text-light hover:text-brand-orange hover:bg-beige-soft rounded transition-colors" title={t.back}>
                 <ChevronLeft className="w-5 h-5"/>
              </button>
+             
+             <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-2 text-brand-text-light hover:text-brand-orange hover:bg-beige-soft rounded transition-colors"
+                title={t.toggleSidebar}
+             >
+                {isSidebarOpen ? <PanelLeftClose className="w-5 h-5"/> : <PanelLeft className="w-5 h-5"/>}
+             </button>
+
              <h2 className="text-lg font-bold text-brand-text hidden sm:block font-mono">{initialSession.session_id}</h2>
              
              {editor && (
              <div className="flex items-center space-x-1 ml-4 border-l border-brand-border pl-4">
-                 <EditorToolbarButton onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title={t.undo}><Undo2 className="w-4 h-4"/></EditorToolbarButton>
-                 <EditorToolbarButton onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title={t.redo}><Redo2 className="w-4 h-4"/></EditorToolbarButton>
+                 {/* Fix: Cast editor.can() and editor.chain() to any to access undo/redo commands */}
+                 <EditorToolbarButton onClick={() => (editor.chain().focus() as any).undo().run()} disabled={!(editor.can() as any).undo()} title={t.undo}><Undo2 className="w-4 h-4"/></EditorToolbarButton>
+                 <EditorToolbarButton onClick={() => (editor.chain().focus() as any).redo().run()} disabled={!(editor.can() as any).redo()} title={t.redo}><Redo2 className="w-4 h-4"/></EditorToolbarButton>
              </div>
              )}
          </div>
@@ -217,8 +232,12 @@ word_count: ${currentWordCount}
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-          <div className="w-80 bg-white border-r border-brand-border p-5 overflow-y-auto space-y-6 custom-scrollbar shrink-0">
-              <div className="space-y-5 pt-2">
+          <div 
+            className={`bg-white border-r border-brand-border overflow-y-auto custom-scrollbar shrink-0 transition-all duration-300 ease-in-out ${
+                isSidebarOpen ? 'w-80 p-5 opacity-100' : 'w-0 p-0 border-r-0 opacity-0'
+            }`}
+          >
+              <div className={`space-y-6 pt-2 ${isSidebarOpen ? '' : 'hidden'}`}>
                   <div><label className="block text-xs font-medium text-brand-text-light mb-1 flex items-center"><Calendar className="w-3 h-3 mr-1"/> {t.date}</label><input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full text-sm p-2 border border-brand-border rounded bg-beige-soft focus:ring-1 focus:ring-brand-orange focus:border-brand-orange outline-none" /></div>
                   <div><label className="block text-xs font-medium text-brand-text-light mb-1 flex items-center"><Clock className="w-3 h-3 mr-1"/> {t.duration}</label><input type="number" value={duration} onChange={e => setDuration(Number(e.target.value))} className="w-full text-sm p-2 border border-brand-border rounded bg-beige-soft focus:ring-1 focus:ring-brand-orange focus:border-brand-orange outline-none" /></div>
                   <div><label className="block text-xs font-medium text-brand-text-light mb-1 flex items-center"><Users className="w-3 h-3 mr-1"/> {t.format}</label><select value={format} onChange={e => setFormat(e.target.value as SessionFormat)} className="w-full text-sm p-2 border border-brand-border rounded bg-beige-soft focus:ring-1 focus:ring-brand-orange focus:border-brand-orange outline-none"><option value="individual">{t.individual}</option><option value="couple">{t.couple}</option><option value="family">{t.family}</option><option value="group">{t.group}</option></select></div>

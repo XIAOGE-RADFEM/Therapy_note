@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Language } from '../types';
-import { CryptoService } from '../services/crypto';
+import { CryptoService, uint8ArrayToBase64, base64ToUint8Array } from '../services/crypto';
 import { Lock } from 'lucide-react';
 
 interface AuthProps {
@@ -9,10 +9,6 @@ interface AuthProps {
   onUnlock: (crypto: CryptoService) => void;
   needsSetup: boolean;
 }
-
-const base64ToUint8Array = (base64: string) => Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-const uint8ArrayToBase64 = (array: Uint8Array) => btoa(String.fromCharCode.apply(null, Array.from(array)));
-
 
 export const Auth: React.FC<AuthProps> = ({ lang, onUnlock, needsSetup }) => {
   const t = TRANSLATIONS[lang];

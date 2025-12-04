@@ -1,24 +1,29 @@
+
+
 import React, { useRef } from 'react';
-import { Database, Download, Upload, Trash2, HardDrive } from 'lucide-react';
+import { Database, Download, Upload, Trash2, HardDrive, Lock, ShieldCheck } from 'lucide-react';
 import { Language, Client, Session } from '../types';
 import { TRANSLATIONS } from '../constants';
 import { db } from '../services/db';
 
 interface SettingsProps {
   lang: Language;
-  clientsCount: number;
-  sessionsCount: number;
+  clients: Client[];
+  sessions: Session[];
   onInitiateImport: (data: any) => void;
   onClear: () => void;
+  onChangePassword: () => void;
 }
 
-export const Settings: React.FC<SettingsProps> = ({ lang, clientsCount, sessionsCount, onInitiateImport, onClear }) => {
+export const Settings: React.FC<SettingsProps> = ({ lang, clients, sessions, onInitiateImport, onClear, onChangePassword }) => {
   const t = TRANSLATIONS[lang];
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const clientsCount = clients.length;
+  const sessionsCount = sessions.length;
 
   const handleExport = async () => {
     try {
-      const data = await db.exportData();
+      const data = await db.exportData(clients, sessions);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -52,7 +57,7 @@ export const Settings: React.FC<SettingsProps> = ({ lang, clientsCount, sessions
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       
       {/* Stats Card */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-brand-border">
@@ -72,6 +77,32 @@ export const Settings: React.FC<SettingsProps> = ({ lang, clientsCount, sessions
                 <span className="text-2xl font-bold text-brand-text">{sessionsCount}</span>
             </div>
          </div>
+      </div>
+      
+      {/* Security Section */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-brand-border">
+         <div className="flex items-center gap-3 mb-6">
+             <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                <ShieldCheck className="w-5 h-5" />
+             </div>
+             <h2 className="text-xl font-bold text-brand-text">{t.security}</h2>
+         </div>
+
+         <div className="flex items-start justify-between p-4 border border-brand-border rounded-lg hover:bg-beige-soft/30 transition-colors">
+             <div>
+                <h3 className="font-semibold text-brand-text flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-brand-text-light" />
+                    {t.changePassword}
+                </h3>
+                <p className="text-sm text-brand-text-light mt-1 max-w-md">{t.changePasswordDesc}</p>
+             </div>
+             <button 
+                onClick={onChangePassword}
+                className="px-4 py-2 bg-white border border-brand-border text-brand-text text-sm font-medium rounded-lg hover:bg-beige-soft transition-colors"
+             >
+                {t.changePassword}
+             </button>
+          </div>
       </div>
 
       {/* Data Management Actions */}

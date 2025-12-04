@@ -89,7 +89,7 @@ export const ClientList: React.FC<ClientListProps> = ({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [wrapperRef]);
     
-    if (!id) return null;
+    if (!id || !status) return null;
 
     const options: SessionStatus[] = ['scheduled', 'completed', 'cancelled'];
     
@@ -100,6 +100,8 @@ export const ClientList: React.FC<ClientListProps> = ({
     };
 
     const currentStatus = statusMap[status];
+
+    if (!currentStatus) return null;
 
     const handleSelect = (newStatus: SessionStatus) => {
         onUpdateSessionStatus(id, newStatus);
@@ -125,7 +127,7 @@ export const ClientList: React.FC<ClientListProps> = ({
                             onClick={() => handleSelect(option)}
                             className="block px-3 py-1 text-xs text-brand-text hover:bg-beige-soft cursor-pointer"
                         >
-                            {t[option as keyof typeof t]}
+                            {t[option as keyof typeof t] as string}
                         </a>
                     ))}
                 </div>
