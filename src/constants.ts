@@ -22,6 +22,10 @@ export const TRANSLATIONS = {
     delete: 'Delete',
     // FIX: Add 'today' translation for calendar view
     today: 'Today',
+    day: 'Day',
+    week: 'Week',
+    month: 'Month',
+    newEvent: 'New event',
     totalHours: 'Total Hours',
     totalSessions: 'Total Sessions',
     activeClients: 'Active Clients',
@@ -147,7 +151,10 @@ export const TRANSLATIONS = {
     newPassword: 'New Password',
     confirmNewPassword: 'Confirm New Password',
     passwordChanged: 'Password changed successfully.',
-    verifyError: 'Current password incorrect.'
+    verifyError: 'Current password incorrect.',
+    // Calendar Settings
+    calendarSettings: 'Calendar Settings',
+    startWeekOnMonday: 'Start Week on Monday',
   },
   zh: {
     dashboard: '主页',
@@ -168,6 +175,10 @@ export const TRANSLATIONS = {
     delete: '删除',
     // FIX: Add 'today' translation for calendar view
     today: '今天',
+    day: '日',
+    week: '周',
+    month: '月',
+    newEvent: '新建日程',
     totalHours: '总时长 (小时)',
     totalSessions: '总会谈数',
     activeClients: '活跃来访者',
@@ -293,7 +304,10 @@ export const TRANSLATIONS = {
     newPassword: '新密码',
     confirmNewPassword: '确认新密码',
     passwordChanged: '密码修改成功。',
-    verifyError: '当前密码不正确。'
+    verifyError: '当前密码不正确。',
+    // Calendar Settings
+    calendarSettings: '日历设置',
+    startWeekOnMonday: '周一作为一周开始',
   },
 };
 

@@ -52,7 +52,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
       {/* Sidebar */}
       <aside 
         className={`bg-beige-soft border-r border-brand-border flex flex-col z-10 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'w-64 px-4 py-4' : 'w-20 py-4 items-center'
+          isSidebarOpen ? 'w-56 px-4 py-4' : 'w-20 py-4 items-center'
         }`}
       >
         {/* Logo Area */}
