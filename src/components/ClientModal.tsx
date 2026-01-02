@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
-import { X, User, Calendar, Tag, Activity, Globe } from 'lucide-react';
+import { X, User, Calendar, Tag, Activity, Globe, Plus } from 'lucide-react';
 import { Language, Client } from '../types';
-import { TRANSLATIONS } from '../constants';
+import { TRANSLATIONS, COMMON_DIAGNOSES } from '../constants';
 
 interface ClientModalProps {
   isOpen: boolean;
@@ -16,14 +17,17 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSav
   const [formData, setFormData] = useState({
     name: '',
     sex: 'female',
+    date_of_birth: '',
     intake_date: new Date().toISOString().split('T')[0],
     referral_source: '',
     status: 'active',
     lang_preference: lang,
-    diagnoses: '',
     tags: '',
     notes: ''
   });
+  
+  const [selectedDiagnoses, setSelectedDiagnoses] = useState<string[]>([]);
+  const [diagnosisInput, setDiagnosisInput] = useState('');
 
   // Populate form when client prop changes (Editing mode)
   useEffect(() => {
@@ -31,28 +35,31 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSav
       setFormData({
         name: client.name,
         sex: client.sex || 'female',
+        date_of_birth: client.date_of_birth || '',
         intake_date: client.intake_date,
         referral_source: client.referral_source,
         status: client.status,
         lang_preference: client.lang_preference,
-        diagnoses: client.diagnoses.join(', '),
         tags: client.tags.join(', '),
         notes: client.notes
       });
+      setSelectedDiagnoses(client.diagnoses);
     } else {
       // Reset for new client
       setFormData({
         name: '',
         sex: 'female',
+        date_of_birth: '',
         intake_date: new Date().toISOString().split('T')[0],
         referral_source: '',
         status: 'active',
         lang_preference: lang,
-        diagnoses: '',
         tags: '',
         notes: ''
       });
+      setSelectedDiagnoses([]);
     }
+    setDiagnosisInput('');
   }, [client, lang, isOpen]);
 
   if (!isOpen) return null;
@@ -62,12 +69,37 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSav
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const addDiagnosis = (val: string) => {
+    if (val && !selectedDiagnoses.includes(val)) {
+        setSelectedDiagnoses([...selectedDiagnoses, val]);
+    }
+  };
+
+  const removeDiagnosis = (val: string) => {
+      setSelectedDiagnoses(selectedDiagnoses.filter(d => d !== val));
+  };
+  
+  const handleDiagnosisSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      if (e.target.value) {
+          addDiagnosis(e.target.value);
+          e.target.value = ''; // reset
+      }
+  };
+
+  const handleDiagnosisInputKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' && diagnosisInput.trim()) {
+          e.preventDefault();
+          addDiagnosis(diagnosisInput.trim());
+          setDiagnosisInput('');
+      }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({
       ...formData,
       client_id: client?.client_id, // Pass ID back if editing
-      diagnoses: formData.diagnoses.split(',').map(s => s.trim()).filter(Boolean),
+      diagnoses: selectedDiagnoses,
       tags: formData.tags.split(',').map(s => s.trim()).filter(Boolean),
     });
   };
@@ -130,21 +162,27 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSav
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-sm font-medium text-brand-text-light mb-1">{t.dateOfBirth}</label>
+              <div className="relative">
+                 <input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} className="form-input"/>
+              </div>
+            </div>
+            <div>
               <label className="block text-sm font-medium text-brand-text-light mb-1">{t.intakeDate}</label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                 <input type="date" name="intake_date" required value={formData.intake_date} onChange={handleChange} className="form-input form-input-with-icon"/>
               </div>
             </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
              <div>
                 <label className="block text-sm font-medium text-brand-text-light mb-1">{t.referral}</label>
                 <div className="relative">
                   <input type="text" name="referral_source" value={formData.referral_source} onChange={handleChange} className="form-input" />
                 </div>
               </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-brand-text-light mb-1">{t.status}</label>
               <div className="relative">
@@ -155,7 +193,9 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSav
                 </select>
               </div>
             </div>
-            <div>
+          </div>
+          
+           <div>
               <label className="block text-sm font-medium text-brand-text-light mb-1">{t.languagePreference}</label>
               <div className="relative">
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -165,16 +205,42 @@ export const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSav
                 </select>
               </div>
             </div>
-          </div>
 
-          {/* Diagnoses & Tags */}
+          {/* Diagnoses with Dropdown and Custom Input */}
           <div>
             <label className="block text-sm font-medium text-brand-text-light mb-1">{t.diagnosis}</label>
-            <div className="relative">
-              <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              <input type="text" name="diagnoses" value={formData.diagnoses} onChange={handleChange} className="form-input form-input-with-icon" placeholder={t.diagnosesPlaceholder}/>
+            <div className="space-y-2">
+                <div className="flex gap-2">
+                    <div className="relative flex-1">
+                        <Activity className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        <select onChange={handleDiagnosisSelect} className="form-input form-input-with-icon">
+                            <option value="">{t.diagnosesPlaceholder}</option>
+                            {COMMON_DIAGNOSES.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                    </div>
+                    <div className="w-1/3 relative">
+                         <input 
+                            type="text" 
+                            value={diagnosisInput}
+                            onChange={(e) => setDiagnosisInput(e.target.value)}
+                            onKeyDown={handleDiagnosisInputKeyDown}
+                            placeholder="Custom..."
+                            className="form-input"
+                         />
+                         <button type="button" onClick={() => {if(diagnosisInput) {addDiagnosis(diagnosisInput); setDiagnosisInput('')}}} className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-orange hover:bg-orange-50 rounded p-1"><Plus className="w-4 h-4"/></button>
+                    </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    {selectedDiagnoses.map(d => (
+                        <span key={d} className="inline-flex items-center px-2 py-1 rounded bg-red-50 text-red-700 text-xs font-medium border border-red-200">
+                            {d}
+                            <button type="button" onClick={() => removeDiagnosis(d)} className="ml-1 text-red-400 hover:text-red-700"><X className="w-3 h-3"/></button>
+                        </span>
+                    ))}
+                </div>
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-brand-text-light mb-1">{t.tags}</label>
             <div className="relative">

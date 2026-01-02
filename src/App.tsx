@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
@@ -55,6 +54,10 @@ const App = () => {
   const [dataToImport, setDataToImport] = useState<any>(null);
 
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
+
+  // Clear Data Confirmation States
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [isClearDoubleConfirmOpen, setIsClearDoubleConfirmOpen] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const inactivityTimer = useRef<number | null>(null);
@@ -133,6 +136,8 @@ const App = () => {
 
   const handleSaveClient = async (formData: any) => {
      let clientToSave: Client;
+     const isNewClient = !editingClient; // Check if it's a new client
+
      if (editingClient) {
        clientToSave = { ...formData, client_id: editingClient.client_id };
        setClients(clients.map(c => c.client_id === clientToSave.client_id ? clientToSave : c));
@@ -146,6 +151,34 @@ const App = () => {
      setEditingClient(null);
      setSelectedClientId(clientToSave.client_id);
      setActiveTab('clients');
+
+     // Automatically open schedule modal for new clients
+     if (isNewClient) {
+       // We use a timeout to ensure the UI transition feels natural after the modal closes
+       setTimeout(() => {
+         handleOpenSchedulingModal({ client: clientToSave, date: clientToSave.intake_date });
+       }, 300);
+     }
+  };
+
+  const handleBulkImportClients = async (newClients: Client[]) => {
+      try {
+        for (const c of newClients) {
+            await db.saveClient(c);
+        }
+        setClients(prev => [...prev, ...newClients]);
+        showToast(`Successfully imported ${newClients.length} clients`, 'success');
+        
+        // Switch to clients tab to show the new data
+        setActiveTab('clients');
+        // Optionally select the first new client
+        if (newClients.length > 0) {
+            setSelectedClientId(newClients[0].client_id);
+        }
+      } catch (e) {
+        console.error("Bulk import failed:", e);
+        throw new Error("Database save failed");
+      }
   };
 
   const handleInitiateDelete = (clientId: string) => { setClientToDeleteId(clientId); setIsConfirmModalOpen(true); };
@@ -233,7 +266,7 @@ const App = () => {
     
     const sessionToUpdate: Session = {
         ...sessionToConvertToNote,
-        status: 'completed',
+        status: 'pending_note', // CHANGED: Set to 'pending_note' (Unwritten) instead of 'completed'
         content: `---
 client_id: ${sessionToConvertToNote.client_id}
 session_id: ${sessionToConvertToNote.session_id}
@@ -342,13 +375,50 @@ ${templateContent}`
     showToast(TRANSLATIONS[lang].passwordChanged, 'success');
   };
 
-  const handleClearData = () => {
-     if (window.confirm(TRANSLATIONS[lang].confirmClear)) {
-        db.clearAllData().then(() => {
-            localStorage.clear();
-            window.location.reload();
-        });
-     }
+  // Step 1: User clicks "Clear Data" -> Opens First Confirmation
+  const handleInitiateClearData = () => {
+      setIsClearConfirmOpen(true);
+  };
+
+  // Step 2: User confirms first warning -> Opens Second (Final) Confirmation
+  const handleProceedToFinalClear = () => {
+      setIsClearConfirmOpen(false);
+      setIsClearDoubleConfirmOpen(true);
+  };
+
+  // Step 3: User confirms second warning -> Executes Clear
+  const handleExecuteClearData = async () => {
+    // 1. Close modal immediately to give user feedback that action is accepted
+    setIsClearDoubleConfirmOpen(false);
+    
+    // 2. Show loading state to prevent interaction
+    setIsLoading(true);
+
+    try {
+        // 3. Clear IndexedDB
+        await db.clearAllData();
+        
+        // 4. Clear LocalStorage (encryption keys)
+        localStorage.clear();
+        
+        // 5. Reset App State completely (Simulate a fresh reload)
+        setClients([]);
+        setSessions([]);
+        setSelectedClientId(null);
+        setCurrentSession(null);
+        setIsEditingSession(false);
+        setActiveTab('dashboard');
+        
+        // 6. Set auth status to 'needs_setup' to trigger the setup screen
+        setAuthStatus('needs_setup');
+        
+        showToast("Data cleared successfully. Please create a new password.", "success");
+    } catch (e) {
+        console.error("Error clearing data:", e);
+        showToast("Failed to clear data. Please try again.", "error");
+    } finally {
+        setIsLoading(false); 
+    }
   };
 
 
@@ -373,7 +443,7 @@ ${templateContent}`
         onSidebarToggle={handleSidebarToggle}
         onLogout={handleLogout}
       >
-        {activeTab === 'dashboard' && <Dashboard clients={clients} sessions={sessions} lang={lang} onClientSelect={handleClientSelectFromDashboard} />}
+        {activeTab === 'dashboard' && <Dashboard clients={clients} sessions={sessions} lang={lang} onClientSelect={handleClientSelectFromDashboard} onSessionSelect={handleSessionClick} />}
         {activeTab === 'clients' && (
           <ClientList 
             clients={clients} 
@@ -386,6 +456,8 @@ ${templateContent}`
             onNewSession={(client) => handleOpenSchedulingModal({ client })}
             onSessionClick={handleSessionClick}
             onUpdateSessionStatus={handleUpdateSessionStatus}
+            onBulkImport={handleBulkImportClients}
+            showMessage={showToast}
             lang={lang}
           />
         )}
@@ -396,8 +468,9 @@ ${templateContent}`
             clients={clients} 
             sessions={sessions} 
             onInitiateImport={handleInitiateImport} 
-            onClear={handleClearData} 
+            onClear={handleInitiateClearData} 
             onChangePassword={() => setIsChangePasswordModalOpen(true)}
+            showMessage={showToast}
           />
         )}
       </Layout>
@@ -463,6 +536,31 @@ ${templateContent}`
           lang={lang}
         />
       )}
+      
+      {/* Clear Data Confirmation Step 1 */}
+      {isClearConfirmOpen && (
+        <ConfirmModal
+          isOpen={isClearConfirmOpen}
+          onClose={() => setIsClearConfirmOpen(false)}
+          onConfirm={handleProceedToFinalClear}
+          title={TRANSLATIONS[lang].confirmClearTitle}
+          message={TRANSLATIONS[lang].confirmClear}
+          lang={lang}
+        />
+      )}
+
+      {/* Clear Data Confirmation Step 2 (Final) */}
+      {isClearDoubleConfirmOpen && (
+        <ConfirmModal
+          isOpen={isClearDoubleConfirmOpen}
+          onClose={() => setIsClearDoubleConfirmOpen(false)}
+          onConfirm={handleExecuteClearData}
+          title={TRANSLATIONS[lang].finalConfirmation}
+          message={TRANSLATIONS[lang].confirmClearDouble}
+          lang={lang}
+        />
+      )}
+
       {isImportPasswordModalOpen && (
         <ImportPasswordModal
             isOpen={isImportPasswordModalOpen}

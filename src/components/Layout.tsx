@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Home, Users, Calendar, Plus, Languages, Settings, PanelLeft, PanelLeftClose, LogOut } from 'lucide-react';
 import { Language } from '../types';
@@ -18,7 +19,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onNewClient, lang, onLangToggle, isSidebarOpen, onSidebarToggle, onLogout }) => {
   const t = TRANSLATIONS[lang];
 
-  const NavItem = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => (
+  const DesktopNavItem = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => (
     <button
       onClick={() => onTabChange(id)}
       className={`flex items-center transition-all rounded-lg group relative ${
@@ -47,26 +48,41 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
     </button>
   );
 
+  const MobileNavItem = ({ id, icon: Icon, label }: { id: string, icon: any, label: string }) => (
+    <button 
+      onClick={() => onTabChange(id)}
+      className={`flex flex-col items-center justify-center w-full h-full py-1 ${
+        activeTab === id ? 'text-brand-orange' : 'text-gray-400 hover:text-brand-text'
+      }`}
+    >
+      <Icon className={`w-6 h-6 ${activeTab === id ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+      <span className="text-[10px] mt-1 font-medium">{label}</span>
+    </button>
+  );
+
   return (
     <div className="flex h-screen bg-beige overflow-hidden">
-      {/* Sidebar */}
+      {/* Desktop Sidebar - Hidden on small screens */}
       <aside 
-        className={`bg-beige-soft border-r border-brand-border flex flex-col z-10 transition-all duration-300 ease-in-out ${
-          isSidebarOpen ? 'w-56 px-4 py-4' : 'w-20 py-4 items-center'
+        className={`hidden md:flex bg-beige-soft border-r border-brand-border flex-col z-10 transition-all duration-300 ease-in-out ${
+          isSidebarOpen ? 'w-64 px-4 py-4' : 'w-20 py-4 items-center'
         }`}
       >
         {/* Logo Area */}
-        <div className={`flex items-center h-16 shrink-0 transition-all duration-300 ${isSidebarOpen ? 'px-2' : 'justify-center'}`}>
-           <svg className="w-8 h-8 text-brand-orange shrink-0" viewBox="0 0 24 24" fill="currentColor">
-             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 11.5c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/><path d="M12 13.5c-2.67 0-8 1.34-8 4v1.5h16v-1.5c0-2.66-5.33-4-8-4zm0 1.5c1.16 0 2.53.25 3.96.75H8.04c1.43-.5 2.8-..75 3.96-.75z"/>
-           </svg>
+       <div className={`flex items-center h-16 shrink-0 transition-all duration-300 ${isSidebarOpen ? 'px-2' : 'justify-center'}`}>
+           {/* CUSTOM LOGO: Replace the src below with your own image URL */}
+           <img 
+             src="/log.svg" 
+             alt="Logo" 
+             className="w-10 h-10 shrink-0 object-contain"
+           />
            <span className={`text-xl font-bold text-brand-text tracking-tight ml-3 whitespace-nowrap overflow-hidden transition-all duration-300 ${isSidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0'}`}>
-             TherapyLog
+             therapyLog
            </span>
         </div>
 
         <nav className="flex-1 mt-6 space-y-2 w-full">
-           {/* New Client Button */}
+           {/* Desktop New Client Button */}
            <button 
              onClick={onNewClient}
              className={`flex items-center justify-center text-sm font-semibold text-white bg-brand-orange shadow-sm hover:bg-brand-orange/90 transition-all mb-6 group relative ${
@@ -85,10 +101,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
               )}
            </button>
 
-          <NavItem id="dashboard" icon={Home} label={t.dashboard} />
-          <NavItem id="clients" icon={Users} label={t.clients} />
-          <NavItem id="calendar" icon={Calendar} label={t.calendar} />
-          <NavItem id="settings" icon={Settings} label={t.settings} />
+          <DesktopNavItem id="dashboard" icon={Home} label={t.dashboard} />
+          <DesktopNavItem id="clients" icon={Users} label={t.clients} />
+          <DesktopNavItem id="calendar" icon={Calendar} label={t.calendar} />
+          <DesktopNavItem id="settings" icon={Settings} label={t.settings} />
         </nav>
 
         {/* Bottom Actions */}
@@ -132,10 +148,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
-        <header className="bg-beige h-24 flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-4">
+      {/* Main Content Wrapper */}
+      <main className="flex-1 flex flex-col overflow-hidden transition-all duration-300 relative">
+        
+        {/* Desktop Header */}
+        <header className="hidden md:flex bg-beige h-20 md:h-24 items-center justify-between px-4 md:px-8 shrink-0">
+          <div className="flex items-center gap-2 md:gap-4">
             <button 
               onClick={onSidebarToggle} 
               className="p-2 text-brand-text-light hover:text-brand-orange hover:bg-beige-soft rounded-full transition-colors"
@@ -143,24 +161,62 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange
             >
               {isSidebarOpen ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeft className="w-5 h-5" />}
             </button>
-            <h1 className="text-3xl font-bold text-brand-text whitespace-nowrap">
+            <h1 className="text-2xl md:text-3xl font-bold text-brand-text whitespace-nowrap">
               {activeTab === 'dashboard' && t.dashboard}
               {activeTab === 'clients' && t.clients}
               {activeTab === 'calendar' && t.calendar}
               {activeTab === 'settings' && t.settings}
             </h1>
           </div>
-          
-          <div className="flex items-center space-x-4">
-             {/* Header Content can go here if needed */}
-          </div>
         </header>
 
-        <div className="flex-1 overflow-auto px-8 pb-8 custom-scrollbar">
-          <div className="w-full h-full">
+        {/* Mobile Header (Top Bar) */}
+        <header className="md:hidden h-16 bg-beige flex items-center justify-between px-4 border-b border-brand-border shrink-0 z-20">
+           <div className="flex items-center">
+             <svg className="w-6 h-6 text-brand-orange shrink-0 mr-2" viewBox="0 0 24 24" fill="currentColor">
+               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="M12 11.5c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2 2-.9 2-2-.9-2-2-2z"/><path d="M12 13.5c-2.67 0-8 1.34-8 4v1.5h16v-1.5c0-2.66-5.33-4-8-4zm0 1.5c1.16 0 2.53.25 3.96.75H8.04c1.43-.5 2.8-..75 3.96-.75z"/>
+             </svg>
+             <span className="text-lg font-bold text-brand-text tracking-tight">TherapyLog</span>
+           </div>
+           <div className="flex items-center gap-2">
+             <button onClick={onLangToggle} className="p-2 rounded-full text-brand-text-light hover:bg-beige-soft">
+                <Languages className="w-5 h-5" />
+             </button>
+             <button onClick={onLogout} className="p-2 rounded-full text-brand-text-light hover:bg-red-50 hover:text-red-500">
+                <LogOut className="w-5 h-5" />
+             </button>
+           </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        {/* pb-36 on mobile ensures content isn't hidden behind the bottom tab bar and FAB */}
+        <div className="flex-1 overflow-auto px-4 md:px-8 pb-36 md:pb-8 custom-scrollbar">
+          <div className="w-full h-full md:pt-0 pt-4"> 
+             {/* Note: pt-4 removed on mobile to let views like Calendar handle their own top spacing if needed, 
+                 or re-added here if generic padding is desired. 
+                 Current: pt-4 generic mobile padding re-enabled but controlled. */}
             {children}
           </div>
         </div>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-brand-border flex items-center justify-around px-2 z-40 safe-area-bottom shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+           <MobileNavItem id="dashboard" icon={Home} label={t.home} />
+           <MobileNavItem id="clients" icon={Users} label={t.clients} />
+           
+           {/* Central Floating Action Button */}
+           <div className="relative -top-6">
+             <button 
+               onClick={onNewClient} 
+               className="w-14 h-14 rounded-full bg-brand-orange text-white shadow-lg shadow-brand-orange/30 flex items-center justify-center transform transition-transform active:scale-95"
+             >
+               <Plus className="w-7 h-7" />
+             </button>
+           </div>
+
+           <MobileNavItem id="calendar" icon={Calendar} label={t.calendar} />
+           <MobileNavItem id="settings" icon={Settings} label={t.settings} />
+        </nav>
       </main>
     </div>
   );

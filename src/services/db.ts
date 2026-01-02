@@ -206,12 +206,16 @@ export class DBService {
 
   async clearAllData(): Promise<void> {
     return new Promise((resolve, reject) => {
-       if (!this.db) return reject('DB not initialized');
-       const t = this.db.transaction([CLIENT_STORE, SESSION_STORE], 'readwrite');
-       t.objectStore(CLIENT_STORE).clear();
-       t.objectStore(SESSION_STORE).clear();
-       t.oncomplete = () => resolve();
-       t.onerror = () => reject(t.error);
+       try {
+           if (!this.db) return reject('DB not initialized');
+           const t = this.db.transaction([CLIENT_STORE, SESSION_STORE], 'readwrite');
+           t.objectStore(CLIENT_STORE).clear();
+           t.objectStore(SESSION_STORE).clear();
+           t.oncomplete = () => resolve();
+           t.onerror = () => reject(t.error);
+       } catch (error) {
+           reject(error);
+       }
     });
   }
 

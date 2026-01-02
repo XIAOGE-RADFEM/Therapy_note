@@ -57,7 +57,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ clients, sessions, l
     const newDate = new Date(currentDate);
     if (view === 'month') newDate.setMonth(newDate.getMonth() + 1);
     else if (view === 'week') newDate.setDate(newDate.getDate() + 7);
-    else newDate.setDate(newDate.getDate() - 1);
+    else newDate.setDate(newDate.getDate() + 1);
     setCurrentDate(newDate);
   };
 
@@ -232,7 +232,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ clients, sessions, l
          </div>
 
          {/* Grid Body */}
-         <div className="flex-1 overflow-y-auto custom-scrollbar relative">
+         <div className="flex-1 overflow-y-auto custom-scrollbar relative pb-16">
              <div className="flex min-h-[1440px]"> {/* 1440px = 24 hours * 60px/hr */}
                 {/* Time Axis */}
                 <div className="w-16 shrink-0 border-r border-brand-border bg-white text-xs text-brand-text-light">
@@ -308,22 +308,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ clients, sessions, l
     <div className="h-full flex flex-col bg-white rounded-xl border border-brand-border shadow-sm overflow-hidden animate-in fade-in duration-300">
       
       {/* Main Header */}
-      <div className="p-4 border-b border-brand-border flex items-center justify-between flex-wrap gap-y-2 shrink-0 bg-white z-10">
-         <div className="flex items-center gap-4">
-             <button onClick={handleToday} className="px-4 py-1.5 text-sm font-medium text-brand-text bg-white border border-brand-border rounded-lg hover:bg-beige-soft transition-colors shadow-sm">
+      <div className="p-2 md:p-4 border-b border-brand-border flex items-center justify-between shrink-0 bg-white z-10">
+         <div className="flex items-center gap-2 md:gap-4 flex-1 overflow-hidden">
+             {/* Today Button - Smaller on mobile */}
+             <button onClick={handleToday} className="px-2 md:px-4 py-1.5 text-xs md:text-sm font-medium text-brand-text bg-white border border-brand-border rounded-lg hover:bg-beige-soft transition-colors shadow-sm whitespace-nowrap">
                  {t.today}
              </button>
-             <div className="flex items-center text-brand-text-light">
-                 <button onClick={handlePrev} className="p-1.5 hover:bg-beige-soft rounded-full transition-colors"><ChevronLeft size={20} /></button>
-                 <button onClick={handleNext} className="p-1.5 hover:bg-beige-soft rounded-full transition-colors"><ChevronRight size={20} /></button>
+             
+             {/* Nav Arrows */}
+             <div className="flex items-center text-brand-text-light shrink-0">
+                 <button onClick={handlePrev} className="p-1 md:p-1.5 hover:bg-beige-soft rounded-full transition-colors"><ChevronLeft className="w-5 h-5 md:w-5 md:h-5" /></button>
+                 <button onClick={handleNext} className="p-1 md:p-1.5 hover:bg-beige-soft rounded-full transition-colors"><ChevronRight className="w-5 h-5 md:w-5 md:h-5" /></button>
              </div>
-             <h2 className="text-xl font-bold text-brand-text tracking-tight ml-2">
+             
+             {/* Date Title - Flexible width on mobile */}
+             <h2 className="text-base md:text-xl font-bold text-brand-text tracking-tight ml-1 truncate">
                  {getHeaderText()}
              </h2>
          </div>
 
-         <div className="flex items-center gap-3">
-             <div className="flex items-center p-1 bg-beige-soft rounded-lg border border-brand-border">
+         <div className="flex items-center gap-1 md:gap-3 shrink-0 ml-2">
+             <div className="hidden md:flex items-center p-1 bg-beige-soft rounded-lg border border-brand-border">
                  {(['month', 'week', 'day'] as ViewType[]).map(v => (
                      <button
                         key={v}
@@ -342,9 +347,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ clients, sessions, l
                  <button 
                     onClick={() => setShowSettings(!showSettings)}
                     title={t.setting} 
-                    className={`p-2 rounded-lg transition-colors ${showSettings ? 'bg-beige-soft text-brand-orange' : 'text-brand-text-light hover:bg-beige-soft'}`}
+                    className={`p-1.5 md:p-2 rounded-lg transition-colors ${showSettings ? 'bg-beige-soft text-brand-orange' : 'text-brand-text-light hover:bg-beige-soft'}`}
                  >
-                    <Settings size={20} />
+                    <Settings className="w-5 h-5 md:w-5 md:h-5" />
                  </button>
                  {showSettings && (
                      <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-brand-border z-30 p-2 animate-in fade-in zoom-in-95 duration-200">
@@ -374,10 +379,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ clients, sessions, l
              
              <button 
                 onClick={() => onSchedule({ date: toLocalISOString(currentDate) })}
-                className="flex items-center justify-center gap-2 sm:px-4 px-2 py-2 bg-brand-orange text-white text-sm font-medium rounded-lg hover:bg-brand-orange/90 shadow-sm transition-colors"
+                className="flex items-center gap-1 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-brand-orange text-white text-xs md:text-sm font-medium rounded-lg hover:bg-brand-orange/90 shadow-sm transition-colors whitespace-nowrap"
              >
-                 <Plus size={16} />
-                 <span className="hidden sm:inline">{t.newEvent}</span>
+                 <Plus className="w-4 h-4" />
+                 <span className="hidden md:inline">{t.newEvent}</span>
+                 <span className="md:hidden">New</span>
              </button>
          </div>
       </div>

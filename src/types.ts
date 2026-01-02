@@ -1,10 +1,12 @@
+
 export type Language = 'en' | 'zh';
 
 export interface Client {
   client_id: string; // YYYYMMDD-XX
   intake_date: string;
   name: string;
-  sex: 'female' | 'male' | 'other'; // Added sex field
+  sex: 'female' | 'male' | 'other';
+  date_of_birth: string; // YYYY-MM-DD
   status: 'active' | 'archived' | 'paused';
   referral_source: string;
   diagnoses: string[];
@@ -15,7 +17,8 @@ export interface Client {
 
 export type SessionFormat = 'individual' | 'couple' | 'family' | 'group';
 export type SessionSetting = 'in-person' | 'online' | 'phone';
-export type SessionStatus = 'scheduled' | 'completed' | 'cancelled';
+// Added 'pending_note' status
+export type SessionStatus = 'scheduled' | 'pending_note' | 'completed' | 'cancelled';
 
 export interface Attachment {
   id: string;

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { X, FileText } from 'lucide-react';
 import { Language } from '../types';
@@ -34,18 +35,21 @@ export const TemplateSelectionModal: React.FC<TemplateSelectionModalProps> = ({ 
         <div className="p-6">
           <p className="text-brand-text-light mb-6 text-center">{t.selectTemplatePrompt}</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {Object.entries(TEMPLATES).map(([key, template]) => (
-              <button
-                key={key}
-                onClick={() => handleSelect(template.content)}
-                className="text-left p-4 border border-brand-border rounded-lg hover:bg-beige-soft hover:border-brand-orange/50 transition-all focus:outline-none focus:ring-2 focus:ring-brand-orange"
-              >
-                <h3 className="font-semibold text-brand-text">{lang === 'zh' ? template.zh : template.en}</h3>
-                <p className="text-xs text-brand-text-light mt-1 line-clamp-2">
-                  {template.content.trim().split('\n')[1] || 'Start with a blank note.'}
-                </p>
-              </button>
-            ))}
+            {Object.entries(TEMPLATES).map(([key, template]) => {
+                const content = lang === 'zh' ? template.content_zh : template.content_en;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleSelect(content)}
+                    className="text-left p-4 border border-brand-border rounded-lg hover:bg-beige-soft hover:border-brand-orange/50 transition-all focus:outline-none focus:ring-2 focus:ring-brand-orange"
+                  >
+                    <h3 className="font-semibold text-brand-text">{lang === 'zh' ? template.zh : template.en}</h3>
+                    <p className="text-xs text-brand-text-light mt-1 line-clamp-2">
+                      {content.trim().split('\n')[1] || 'Start with a blank note.'}
+                    </p>
+                  </button>
+                );
+            })}
           </div>
         </div>
       </div>
